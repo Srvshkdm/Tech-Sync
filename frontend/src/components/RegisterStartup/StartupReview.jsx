@@ -247,13 +247,17 @@ export default function StartupReview() {
             }));
 
             // Include applicationId in the data sent to register startup
+            // Only include applicationId if it's not 'new' and is a valid MongoDB ObjectId
+            const isValidObjectId =
+                appId && appId !== 'new' && /^[0-9a-fA-F]{24}$/.test(appId);
+
             const dataWithAppId = {
                 ...totalData,
                 personal: {
                     ...totalData.personal,
                     data: {
                         ...totalData.personal?.data,
-                        applicationId: appId,
+                        ...(isValidObjectId && { applicationId: appId }),
                     },
                 },
             };

@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { investorRegistrationService, investorService } from '../../services';
 
 export default function InvestorReview() {
     const navigate = useNavigate();
-    const { investorId } = useParams();
-    const isViewingExisting = !!investorId;
+    const location = useLocation();
+    const { investorId } = useParams(); // This is actually userId during registration
+
+    // Check if we're in registration mode by looking at the route and localStorage
+    const isRegistrationRoute = location.pathname.includes('/become-investor/') && location.pathname.includes('/personal');
+    const hasLocalStorageData =
+        localStorage.getItem('InvestorPersonalInfo') !== null;
+    const isRegistrationMode = isRegistrationRoute || (hasLocalStorageData && !location.pathname.includes('/review'));
+
+    // Treat as viewing existing if we have investorId AND the path includes /review but not during registration
+    const isViewingExisting = !!investorId && location.pathname.includes('/review') && !hasLocalStorageData;
 
     // State to hold fetched data
     const [investorData, setInvestorData] = useState({
@@ -20,45 +29,85 @@ export default function InvestorReview() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        const loadFromLocalStorage = () => {
+            const personalInformation =
+                JSON.parse(localStorage.getItem('InvestorPersonalInfo')) || {};
+            const financialInformation =
+                JSON.parse(localStorage.getItem('InvestorFinancialInfo')) || {};
+            const bankingInformation =
+                JSON.parse(localStorage.getItem('InvestorBankingInfo')) || {};
+            const documents =
+                JSON.parse(localStorage.getItem('InvestorDocuments')) || {};
+
+            setInvestorData({
+                personalInformation,
+                financialInformation,
+                bankingInformation,
+                documents,
+            });
+        };
+
         const loadInvestorData = async () => {
             try {
                 setIsLoading(true);
+                setError(null);
 
                 if (isViewingExisting && investorId) {
-                    // Fetch from backend
-                    const response =
-                        await investorService.getInvestorDetails(investorId);
-                    setInvestorData({
-                        personalInformation: response.personalInformation || {},
-                        financialInformation:
-                            response.financialInformation || {},
-                        bankingInformation: response.bankingInformation || {},
-                        documents: response.documents || {},
-                    });
+                    // Only fetch from backend if viewing existing investor
+                    try {
+                        console.log('Fetching investor details for ID:', investorId);
+                        const response =
+                            await investorService.getInvestorDetails(
+                                investorId
+                            );
+                        
+                        console.log('Response from backend:', response);
+                        
+                        // Check if response has investor data
+                        const investor = response.investor || response;
+                        
+                        // Map the investor data to the expected structure
+                        setInvestorData({
+                            personalInformation: {
+                                fullName: investor.fullName || investor.name || '',
+                                investorType: investor.investorType || '',
+                                organizationName: investor.organisationName || investor.organizationName || '',
+                                phoneNumber: investor.phoneNumber || investor.mobile || '',
+                                email: investor.email || '',
+                                address: investor.address || '',
+                                dateOfBirth: investor.dateOfBirth || investor.dob || '',
+                                nationality: investor.nationality || '',
+                                linkedIn: investor.linkedIn || investor.linkedin || ''
+                            },
+                            financialInformation: {
+                                revenue: investor.revenue || investor.financialInfo?.revenue || '',
+                                netWorth: investor.netWorth || investor.financialInfo?.netWorth || '',
+                                businessLicenseNumber: investor.businessLicenseNumber || '',
+                                taxPayerIdentification: investor.taxPayerIdentification || investor.taxId || '',
+                                idType: investor.idType || investor.governmentIdType || '',
+                                idValue: investor.idValue || investor.governmentIdNumber || ''
+                            },
+                            bankingInformation: {
+                                bankName: investor.bankName || investor.bankInfo?.bankName || '',
+                                accountNumber: investor.accountNumber || investor.bankInfo?.accountNumber || '',
+                                accountType: investor.accountType || investor.bankInfo?.accountType || '',
+                                ifscCode: investor.ifscCode || investor.bankInfo?.ifscCode || investor.bankInfo?.IFSC || '',
+                                branchName: investor.branchName || investor.bankInfo?.branchName || '',
+                                swiftCode: investor.swiftCode || investor.bankInfo?.swiftCode || ''
+                            },
+                            documents: investor.documents || {}
+                        });
+                    } catch (err) {
+                        // If error and in registration mode, fallback to localStorage
+                        if (isRegistrationMode) {
+                            loadFromLocalStorage();
+                        } else {
+                            throw err;
+                        }
+                    }
                 } else {
                     // Load from localStorage for new applications
-                    const personalInformation =
-                        JSON.parse(
-                            localStorage.getItem('InvestorPersonalInfo')
-                        ) || {};
-                    const financialInformation =
-                        JSON.parse(
-                            localStorage.getItem('InvestorFinancialInfo')
-                        ) || {};
-                    const bankingInformation =
-                        JSON.parse(
-                            localStorage.getItem('InvestorBankingInfo')
-                        ) || {};
-                    const documents =
-                        JSON.parse(localStorage.getItem('InvestorDocuments')) ||
-                        {};
-
-                    setInvestorData({
-                        personalInformation,
-                        financialInformation,
-                        bankingInformation,
-                        documents,
-                    });
+                    loadFromLocalStorage();
                 }
             } catch (err) {
                 setError(err.message);
@@ -68,7 +117,7 @@ export default function InvestorReview() {
         };
 
         loadInvestorData();
-    }, [investorId, isViewingExisting]);
+    }, [investorId, isViewingExisting, isRegistrationMode]);
 
     const {
         personalInformation,

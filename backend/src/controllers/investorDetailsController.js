@@ -8,15 +8,28 @@ import { getObjectSignedUrl } from '../utils/s3utils.js';
 export const getInvestorDetailsById = async (req, res) => {
     try {
         const { investorId } = req.params;
+        let investor = null;
 
-        // Find investor by _id
-        const investor = await Investor.findById(investorId)
+        // First try to find by userId (since frontend often passes userId)
+        investor = await Investor.findOne({ userId: investorId })
             .populate('governmentId')
             .populate('documents');
+
+        // If not found by userId, try finding by _id
+        if (!investor) {
+            try {
+                investor = await Investor.findById(investorId)
+                    .populate('governmentId')
+                    .populate('documents');
+            } catch (e) {
+                // Invalid ObjectId format, continue
+            }
+        }
 
         if (!investor) {
             return res.status(NOT_FOUND).json({
                 message: 'Investor not found',
+                searchedId: investorId,
             });
         }
 

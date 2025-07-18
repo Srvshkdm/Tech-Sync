@@ -36,17 +36,20 @@ export default function StartupOwnerDocuments() {
     useEffect(() => {
         setCurrentStep(4);
 
-        const savedData = localStorage.getItem(
-            `${user._id}_StartupOwnerDocuments`
-        );
-        const savedUploadedDocs = localStorage.getItem(
-            `${user._id}_UploadedDocs`
-        );
-        if (savedData) {
-            setDocuments(JSON.parse(savedData));
-        }
-        if (savedUploadedDocs) {
-            setUploadedDocs(JSON.parse(savedUploadedDocs));
+        // Only try to load saved data if user exists
+        if (user && user._id) {
+            const savedData = localStorage.getItem(
+                `${user._id}_StartupOwnerDocuments`
+            );
+            const savedUploadedDocs = localStorage.getItem(
+                `${user._id}_UploadedDocs`
+            );
+            if (savedData) {
+                setDocuments(JSON.parse(savedData));
+            }
+            if (savedUploadedDocs) {
+                setUploadedDocs(JSON.parse(savedUploadedDocs));
+            }
         }
     }, []);
 
@@ -72,6 +75,12 @@ export default function StartupOwnerDocuments() {
     const handleSubmit = (e) => {
         e.preventDefault();
 
+        // Check if user exists
+        if (!user || !user._id) {
+            alert('User session not found. Please login again.');
+            return;
+        }
+
         // Check if all documents are uploaded
         const allDocsUploaded = Object.values(uploadedDocs).every(
             (doc) => doc.signedUrl !== null && doc.signedUrl !== undefined
@@ -82,24 +91,35 @@ export default function StartupOwnerDocuments() {
             return;
         }
 
-        setCompletedSteps((prev) => [...prev, 'documents']);
-        const setData = {
-            GSTCertificate: uploadedDocs.GSTCertificate.signedUrl,
-            balanceSheet: uploadedDocs.balanceSheet.signedUrl,
-            businessDocuments: uploadedDocs.businessDocuments.signedUrl,
-            governmentIdProof: uploadedDocs.governmentIdProof.signedUrl,
-            startupLogo: uploadedDocs.startupLogo.signedUrl,
-        };
-        setDocuments(setData);
-        setTotalData((prev) => ({
-            ...prev,
-            documents: { data: setData, status: 'complete' },
-        }));
-        localStorage.setItem(
-            `${user._id}_StartupOwnerDocuments`,
-            JSON.stringify({ ...setData, documentsStatus: 'complete' })
-        );
-        navigate(`/application/${user._id}/review`);
+        try {
+            setCompletedSteps((prev) => [...prev, 'documents']);
+            const setData = {
+                GSTCertificate: uploadedDocs.GSTCertificate.signedUrl,
+                balanceSheet: uploadedDocs.balanceSheet.signedUrl,
+                businessDocuments: uploadedDocs.businessDocuments.signedUrl,
+                governmentIdProof: uploadedDocs.governmentIdProof.signedUrl,
+                startupLogo: uploadedDocs.startupLogo.signedUrl,
+            };
+            setDocuments(setData);
+            setTotalData((prev) => ({
+                ...prev,
+                documents: { data: setData, status: 'complete' },
+            }));
+            localStorage.setItem(
+                `${user._id}_StartupOwnerDocuments`,
+                JSON.stringify({ ...setData, documentsStatus: 'complete' })
+            );
+
+            // Get the current application ID from the URL
+            const currentPath = window.location.pathname;
+            const pathParts = currentPath.split('/');
+            const appId = pathParts[2]; // Get the app ID from /application/{appId}/documents
+
+            navigate(`/application/${appId}/review`);
+        } catch (error) {
+            console.error('Error handling documents:', error);
+            alert('Failed to save information. Please try again.');
+        }
     };
 
     const handleChange = async (e) => {

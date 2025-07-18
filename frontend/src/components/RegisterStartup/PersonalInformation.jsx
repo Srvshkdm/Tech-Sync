@@ -7,7 +7,7 @@ import { useRegisterStartupContext, useUserContext } from '../../contexts';
 import { verifyRegex } from '../../utils';
 
 export default function PersonalInformation() {
-    const { setCurrentStep, setTotalData, setCompletedSteps } =
+    const { setCurrentStep, setTotalData, setCompletedSteps, totalData } =
         useRegisterStartupContext();
     const { isReadOnly } = useOutletContext() || {};
 
@@ -44,11 +44,19 @@ export default function PersonalInformation() {
 
     useEffect(() => {
         setCurrentStep(0);
-        const savedData = localStorage.getItem(
-            `${user._id}_StartupOwnerPersonalInfo`
-        );
-        if (savedData) {
-            setInputs(JSON.parse(savedData));
+        
+        // If in read-only mode, load data from context (for viewing submitted applications)
+        if (isReadOnly && totalData?.personal?.data) {
+            setInputs(totalData.personal.data);
+        } 
+        // Otherwise, load from localStorage for in-progress applications
+        else if (user && user._id) {
+            const savedData = localStorage.getItem(
+                `${user._id}_StartupOwnerPersonalInfo`
+            );
+            if (savedData) {
+                setInputs(JSON.parse(savedData));
+            }
         }
         (async function fetchCountryList() {
             try {
@@ -84,7 +92,7 @@ export default function PersonalInformation() {
                 console.error('Error fetching country data:', error);
             }
         })();
-    }, []);
+    }, [isReadOnly, totalData, user]);
 
     function handleChange(e) {
         const { value, name } = e.target;
@@ -101,10 +109,14 @@ export default function PersonalInformation() {
     function handleBlur(e) {
         const { name, value } = e.target;
         verifyRegex(name, value, setErrors);
-        localStorage.setItem(
-            `${user._id}_StartupOwnerPersonalInfo`,
-            JSON.stringify({ ...inputs, personalInfoStatus: 'pending' })
-        );
+
+        // Only save to localStorage if user exists
+        if (user && user._id) {
+            localStorage.setItem(
+                `${user._id}_StartupOwnerPersonalInfo`,
+                JSON.stringify({ ...inputs, personalInfoStatus: 'pending' })
+            );
+        }
     }
 
     function onMouseOver() {
@@ -124,17 +136,41 @@ export default function PersonalInformation() {
 
     async function handleSubmit(e) {
         e.preventDefault();
-        setErrors(initialErrors);
-        setCompletedSteps((prev) => [...prev, 'personal']);
-        setTotalData((prev) => ({
-            ...prev,
-            personal: { data: inputs, status: 'complete' },
-        }));
-        localStorage.setItem(
-            `${user._id}_StartupOwnerPersonalInfo`,
-            JSON.stringify({ ...inputs, personalInfoStatus: 'complete' })
-        );
-        navigate(`/application/${user._id}/organization`);
+
+        // Check if user exists
+        if (!user || !user._id) {
+            setErrors({
+                ...initialErrors,
+                root: 'User session not found. Please login again.',
+            });
+            return;
+        }
+
+        try {
+            setErrors(initialErrors);
+            setCompletedSteps((prev) => [...prev, 'personal']);
+            setTotalData((prev) => ({
+                ...prev,
+                personal: { data: inputs, status: 'complete' },
+            }));
+            localStorage.setItem(
+                `${user._id}_StartupOwnerPersonalInfo`,
+                JSON.stringify({ ...inputs, personalInfoStatus: 'complete' })
+            );
+
+            // Get the current application ID from the URL
+            const currentPath = window.location.pathname;
+            const pathParts = currentPath.split('/');
+            const appId = pathParts[2]; // Get the app ID from /application/{appId}/personal
+
+            navigate(`/application/${appId}/organization`);
+        } catch (error) {
+            console.error('Error saving personal information:', error);
+            setErrors({
+                ...initialErrors,
+                root: 'Failed to save information. Please try again.',
+            });
+        }
     }
 
     const inputFields = [

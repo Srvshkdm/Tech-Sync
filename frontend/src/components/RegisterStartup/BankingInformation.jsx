@@ -33,11 +33,14 @@ export default function BankingInformation() {
 
     useEffect(() => {
         setCurrentStep(3);
-        const savedData = localStorage.getItem(
-            `${user._id}_StartupOwnerBankingInfo`
-        );
-        if (savedData) {
-            setInputs(JSON.parse(savedData));
+        // Only try to load saved data if user exists
+        if (user && user._id) {
+            const savedData = localStorage.getItem(
+                `${user._id}_StartupOwnerBankingInfo`
+            );
+            if (savedData) {
+                setInputs(JSON.parse(savedData));
+            }
         }
     }, []);
 
@@ -52,10 +55,14 @@ export default function BankingInformation() {
     function handleBlur(e) {
         let { name, value } = e.target;
         verifyRegex(name, value, setErrors);
-        localStorage.setItem(
-            `${user._id}_StartupOwnerBankingInfo`,
-            JSON.stringify({ ...inputs, bankingInfoStatus: 'pending' })
-        );
+
+        // Only save to localStorage if user exists
+        if (user && user._id) {
+            localStorage.setItem(
+                `${user._id}_StartupOwnerBankingInfo`,
+                JSON.stringify({ ...inputs, bankingInfoStatus: 'pending' })
+            );
+        }
     }
 
     function onMouseOver() {
@@ -73,17 +80,41 @@ export default function BankingInformation() {
 
     function handleSubmit(e) {
         e.preventDefault();
-        setErrors(initialErrors);
-        setCompletedSteps((prev) => [...prev, 'banking']);
-        setTotalData((prev) => ({
-            ...prev,
-            banking: { data: inputs, status: 'complete' },
-        }));
-        localStorage.setItem(
-            `${user._id}_StartupOwnerBankingInfo`,
-            JSON.stringify({ ...inputs, bankingInfoStatus: 'complete' })
-        );
-        navigate(`/application/${user._id}/documents`);
+
+        // Check if user exists
+        if (!user || !user._id) {
+            setErrors({
+                ...initialErrors,
+                root: 'User session not found. Please login again.',
+            });
+            return;
+        }
+
+        try {
+            setErrors(initialErrors);
+            setCompletedSteps((prev) => [...prev, 'banking']);
+            setTotalData((prev) => ({
+                ...prev,
+                banking: { data: inputs, status: 'complete' },
+            }));
+            localStorage.setItem(
+                `${user._id}_StartupOwnerBankingInfo`,
+                JSON.stringify({ ...inputs, bankingInfoStatus: 'complete' })
+            );
+
+            // Get the current application ID from the URL
+            const currentPath = window.location.pathname;
+            const pathParts = currentPath.split('/');
+            const appId = pathParts[2]; // Get the app ID from /application/{appId}/banking
+
+            navigate(`/application/${appId}/documents`);
+        } catch (error) {
+            console.error('Error saving banking information:', error);
+            setErrors({
+                ...initialErrors,
+                root: 'Failed to save information. Please try again.',
+            });
+        }
     }
 
     const inputFields = [

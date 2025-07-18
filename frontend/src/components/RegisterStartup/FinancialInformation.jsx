@@ -33,11 +33,14 @@ export default function FinancialInformation() {
 
     useEffect(() => {
         setCurrentStep(2);
-        const savedData = localStorage.getItem(
-            `${user._id}_StartupOwnerFinancialInfo`
-        );
-        if (savedData) {
-            setInputs(JSON.parse(savedData));
+        // Only try to load saved data if user exists
+        if (user && user._id) {
+            const savedData = localStorage.getItem(
+                `${user._id}_StartupOwnerFinancialInfo`
+            );
+            if (savedData) {
+                setInputs(JSON.parse(savedData));
+            }
         }
     }, []);
 
@@ -52,10 +55,14 @@ export default function FinancialInformation() {
     function handleBlur(e) {
         let { name, value } = e.target;
         verifyRegex(name, value, setErrors);
-        localStorage.setItem(
-            `${user._id}_StartupOwnerFinancialInfo`,
-            JSON.stringify({ ...inputs, financialInfoStatus: 'pending' })
-        );
+
+        // Only save to localStorage if user exists
+        if (user && user._id) {
+            localStorage.setItem(
+                `${user._id}_StartupOwnerFinancialInfo`,
+                JSON.stringify({ ...inputs, financialInfoStatus: 'pending' })
+            );
+        }
     }
 
     function onMouseOver() {
@@ -73,17 +80,41 @@ export default function FinancialInformation() {
 
     function handleSubmit(e) {
         e.preventDefault();
-        setErrors(initialErrors);
-        setCompletedSteps((prev) => [...prev, 'financial']);
-        setTotalData((prev) => ({
-            ...prev,
-            financial: { data: inputs, status: 'complete' },
-        }));
-        localStorage.setItem(
-            `${user._id}_StartupOwnerFinancialInfo`,
-            JSON.stringify({ ...inputs, financialInfoStatus: 'complete' })
-        );
-        navigate(`/application/${user._id}/banking`);
+
+        // Check if user exists
+        if (!user || !user._id) {
+            setErrors({
+                ...initialErrors,
+                root: 'User session not found. Please login again.',
+            });
+            return;
+        }
+
+        try {
+            setErrors(initialErrors);
+            setCompletedSteps((prev) => [...prev, 'financial']);
+            setTotalData((prev) => ({
+                ...prev,
+                financial: { data: inputs, status: 'complete' },
+            }));
+            localStorage.setItem(
+                `${user._id}_StartupOwnerFinancialInfo`,
+                JSON.stringify({ ...inputs, financialInfoStatus: 'complete' })
+            );
+
+            // Get the current application ID from the URL
+            const currentPath = window.location.pathname;
+            const pathParts = currentPath.split('/');
+            const appId = pathParts[2]; // Get the app ID from /application/{appId}/financial
+
+            navigate(`/application/${appId}/banking`);
+        } catch (error) {
+            console.error('Error saving financial information:', error);
+            setErrors({
+                ...initialErrors,
+                root: 'Failed to save information. Please try again.',
+            });
+        }
     }
 
     const inputFields = [

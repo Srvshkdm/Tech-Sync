@@ -90,6 +90,31 @@ class StartupRegistrationApplicationService {
             throw err;
         }
     }
+
+    async submitApplication(applicationData) {
+        try {
+            const res = await fetch('/api/v1/applications/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(applicationData),
+            });
+            const data = await res.json();
+            console.log(data);
+
+            if (res.status === 500 || !res.ok) {
+                throw new Error(data.message || 'Failed to submit application');
+            }
+            return data;
+        } catch (err) {
+            console.error(
+                `error in submitting startup registration application: ${err.message}`
+            );
+            throw err;
+        }
+    }
 }
 
 export const startupRegistrationApplicationService =

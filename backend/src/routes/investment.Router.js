@@ -17,6 +17,10 @@ import {
 } from '../controllers/investment.Controller.js';
 
 import { getInvestorDetailsById } from '../controllers/investorDetailsController.js';
+import {
+    listAllInvestors,
+    findInvestorByAnyId,
+} from '../controllers/investorTestController.js';
 
 // Put specific routes BEFORE parameterized routes
 investmentRouter
@@ -31,6 +35,10 @@ investmentRouter.route('/become-a-investor').post(verifyJWT, registerInvestor);
 investmentRouter
     .route('/investor-application/:userId')
     .get(verifyJWT, getInvestorApplication);
+
+// Test endpoints for debugging
+investmentRouter.route('/test/list').get(listAllInvestors);
+investmentRouter.route('/test/find/:id').get(findInvestorByAnyId);
 
 // Test endpoint to check if request is reaching
 investmentRouter.route('/test-investor').post(verifyJWT, (req, res) => {

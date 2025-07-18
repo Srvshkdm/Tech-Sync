@@ -343,16 +343,21 @@ const addStartup = async (req, res) => {
                     startupId: startup._id,
                 });
                 if (addedFinancialInfo) {
-                    // Update the startup registration application if applicationId is provided
-                    if (applicationId) {
-                        const application =
-                            await StartupRegistrationApplication.findById(
-                                applicationId
-                            );
-                        if (application && application.owner.equals(_id)) {
-                            application.startupId = startup._id;
-                            application.status = 'complete';
-                            await application.save();
+                    // Update the startup registration application if applicationId is provided and valid
+                    if (applicationId && applicationId !== 'new') {
+                        try {
+                            const application =
+                                await StartupRegistrationApplication.findById(
+                                    applicationId
+                                );
+                            if (application && application.owner.equals(_id)) {
+                                application.startupId = startup._id;
+                                application.status = 'complete';
+                                await application.save();
+                            }
+                        } catch (appError) {
+                            // Log error but don't fail the registration
+                            console.log('Error updating application:', appError.message);
                         }
                     }
 

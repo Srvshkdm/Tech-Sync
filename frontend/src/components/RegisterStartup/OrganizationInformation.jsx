@@ -1,13 +1,15 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useRegisterStartupContext, useUserContext } from '../../contexts';
 import { icons } from '../../assets/icons';
 import { Button } from '..';
+import { verifyRegex } from '../../utils';
 
 export default function OrganizationInformation() {
-    const { setCurrentStep, setTotalData, setCompletedSteps } =
+    const { setCurrentStep, setTotalData, setCompletedSteps, totalData } =
         useRegisterStartupContext();
     const { user } = useUserContext();
+    const { isReadOnly } = useOutletContext() || {};
 
     const initialInputs = {
         startupName: '',
@@ -43,11 +45,19 @@ export default function OrganizationInformation() {
 
     useEffect(() => {
         setCurrentStep(1);
-        const savedData = localStorage.getItem(
-            `${user._id}_StartupOwnerOrganizationInfo`
-        );
-        if (savedData) {
-            setInputs(JSON.parse(savedData));
+        
+        // If in read-only mode, load data from context (for viewing submitted applications)
+        if (isReadOnly && totalData?.organization?.data) {
+            setInputs(totalData.organization.data);
+        }
+        // Otherwise, load from localStorage for in-progress applications
+        else if (user && user._id) {
+            const savedData = localStorage.getItem(
+                `${user._id}_StartupOwnerOrganizationInfo`
+            );
+            if (savedData) {
+                setInputs(JSON.parse(savedData));
+            }
         }
         (async function fetchCountryList() {
             try {
@@ -82,7 +92,7 @@ export default function OrganizationInformation() {
                 console.error('Error fetching country data:', error);
             }
         })();
-    }, []);
+    }, [isReadOnly, totalData, user]);
 
     const handleChange = (e) => {
         const { value, name } = e.target;
@@ -99,10 +109,14 @@ export default function OrganizationInformation() {
     function handleBlur(e) {
         let { name, value } = e.target;
         verifyRegex(name, value, setErrors);
-        localStorage.setItem(
-            `${user._id}_StartupOwnerOrganizationInfo`,
-            JSON.stringify({ ...inputs, organizationInfoStatus: 'pending' })
-        );
+
+        // Only save to localStorage if user exists
+        if (user && user._id) {
+            localStorage.setItem(
+                `${user._id}_StartupOwnerOrganizationInfo`,
+                JSON.stringify({ ...inputs, organizationInfoStatus: 'pending' })
+            );
+        }
     }
 
     function onMouseOver() {
@@ -123,17 +137,44 @@ export default function OrganizationInformation() {
 
     async function handleSubmit(e) {
         e.preventDefault();
-        setErrors(initialErrors);
-        setCompletedSteps((prev) => [...prev, 'organization']);
-        setTotalData((prev) => ({
-            ...prev,
-            organization: { data: inputs, status: 'complete' },
-        }));
-        localStorage.setItem(
-            `${user._id}_StartupOwnerOrganizationInfo`,
-            JSON.stringify({ ...inputs, organizationInfoStatus: 'complete' })
-        );
-        navigate(`/application/${user._id}/financial`);
+
+        // Check if user exists
+        if (!user || !user._id) {
+            setErrors({
+                ...initialErrors,
+                root: 'User session not found. Please login again.',
+            });
+            return;
+        }
+
+        try {
+            setErrors(initialErrors);
+            setCompletedSteps((prev) => [...prev, 'organization']);
+            setTotalData((prev) => ({
+                ...prev,
+                organization: { data: inputs, status: 'complete' },
+            }));
+            localStorage.setItem(
+                `${user._id}_StartupOwnerOrganizationInfo`,
+                JSON.stringify({
+                    ...inputs,
+                    organizationInfoStatus: 'complete',
+                })
+            );
+
+            // Get the current application ID from the URL
+            const currentPath = window.location.pathname;
+            const pathParts = currentPath.split('/');
+            const appId = pathParts[2]; // Get the app ID from /application/{appId}/organization
+
+            navigate(`/application/${appId}/financial`);
+        } catch (error) {
+            console.error('Error saving organization information:', error);
+            setErrors({
+                ...initialErrors,
+                root: 'Failed to save information. Please try again.',
+            });
+        }
     }
 
     const inputFields = [
@@ -191,8 +232,9 @@ export default function OrganizationInformation() {
                     value={inputs[field.name]}
                     onChange={handleChange}
                     onBlur={handleBlur}
+                    readOnly={isReadOnly}
                     placeholder={field.placeholder}
-                    className={`py-[10px] text-ellipsis placeholder:text-[0.9rem] placeholder:text-[#a6a6a6] rounded-md ${field.icon ? 'pl-3 pr-10' : 'px-3'} w-full border-[0.01rem] border-[#858585] outline-violet-600 bg-transparent`}
+                    className={`py-[10px] text-ellipsis placeholder:text-[0.9rem] placeholder:text-[#a6a6a6] rounded-md ${field.icon ? 'pl-3 pr-10' : 'px-3'} w-full border-[0.01rem] border-[#858585] outline-violet-600 bg-transparent ${isReadOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
                 />
             </div>
             {errors[field.name] && (
@@ -278,7 +320,8 @@ export default function OrganizationInformation() {
                             id="businessType"
                             value={inputs.businessType}
                             onChange={handleChange}
-                            className="py-[10px] text-ellipsis placeholder:text-[0.9rem] placeholder:text-[#a6a6a6] rounded-md px-3 w-full border-[0.01rem] border-[#858585] outline-violet-600 bg-transparent"
+                            disabled={isReadOnly}
+                            className={`py-[10px] text-ellipsis placeholder:text-[0.9rem] placeholder:text-[#a6a6a6] rounded-md px-3 w-full border-[0.01rem] border-[#858585] outline-violet-600 bg-transparent ${isReadOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
                             <option value="">Select Business Type</option>
                             {bussinessOptions.map((option) => (
@@ -425,7 +468,8 @@ export default function OrganizationInformation() {
                             </div>
                         )}
                     </div>
-                    {/* buttons */}
+                    {/* buttons - only show if not read-only */}
+                    {!isReadOnly && (
                     <div className="w-full flex items-center justify-end gap-4 mt-4">
                         <Button
                             className="text-[#f9f9f9] rounded-md h-[35px] w-[80px] bg-gradient-to-r from-violet-600 to-violet-700 hover:from-red-600 hover:to-red-700"
@@ -457,6 +501,7 @@ export default function OrganizationInformation() {
                             }
                         />
                     </div>
+                    )}
                 </form>
             </div>
         </div>
