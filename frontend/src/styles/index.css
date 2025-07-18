@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* hide the scrollbars */
+::-webkit-scrollbar {
+    display: none;
+}
+
+@keyframes slow-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.slow-spin {
+    animation: slow-spin 8s linear infinite; /* slower and smoother spin */
+}
+
+/* index.css or global.css */
+
+/* Typing effect keyframes */
+/* Typing effect keyframes */
+@keyframes typing {
+    from {
+        width: 0;
+    }
+    to {
+        width: 100%;
+    }
+}
+
+/* Blinking cursor keyframes */
+@keyframes blink {
+    50% {
+        border-color: transparent;
+    }
+}
+
+/* Typing effect with cursor */
+.typing-line {
+    display: inline-block;
+    overflow: hidden; /* Hide overflow text */
+    white-space: nowrap; /* Prevent text wrapping */
+    border-right: 2px solid transparent; /* Cursor effect */
+    width: 0; /* Start with no text visible */
+    animation:
+        typing steps(30, end) 1s forwards,
+        blink 0.75s step-end infinite;
+}
+
+/* Add delay for the second line */
+.typing-line.delay-4s {
+    animation-delay: 1s;
+}
+
+/* Remove cursor after animation ends */
+.no-cursor-after {
+    animation-fill-mode: forwards; /* Ensures final animation state persists */
+}
+
+.typing-line.no-cursor-after::after {
+    content: ''; /* Ensures the cursor disappears */
+    animation: none; /* Stops the blinking animation */
+    border-right: none; /* Removes the cursor */
+}
