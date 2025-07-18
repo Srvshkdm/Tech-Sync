@@ -45,7 +45,7 @@ export default function OrganizationInformation() {
 
     useEffect(() => {
         setCurrentStep(1);
-        
+
         // If in read-only mode, load data from context (for viewing submitted applications)
         if (isReadOnly && totalData?.organization?.data) {
             setInputs(totalData.organization.data);
@@ -470,37 +470,37 @@ export default function OrganizationInformation() {
                     </div>
                     {/* buttons - only show if not read-only */}
                     {!isReadOnly && (
-                    <div className="w-full flex items-center justify-end gap-4 mt-4">
-                        <Button
-                            className="text-[#f9f9f9] rounded-md h-[35px] w-[80px] bg-gradient-to-r from-violet-600 to-violet-700 hover:from-red-600 hover:to-red-700"
-                            onClick={() => {
-                                setInputs(initialInputs);
-                                setErrors(initialErrors);
-                            }}
-                            btnText={
-                                <div className="flex items-center justify-center gap-2">
-                                    <p className="text-[#f9f9f9]">Reset</p>
-                                    <div className="size-[15px] fill-[#f9f9f9]">
-                                        {icons.erase}
+                        <div className="w-full flex items-center justify-end gap-4 mt-4">
+                            <Button
+                                className="text-[#f9f9f9] rounded-md h-[35px] w-[80px] bg-gradient-to-r from-violet-600 to-violet-700 hover:from-red-600 hover:to-red-700"
+                                onClick={() => {
+                                    setInputs(initialInputs);
+                                    setErrors(initialErrors);
+                                }}
+                                btnText={
+                                    <div className="flex items-center justify-center gap-2">
+                                        <p className="text-[#f9f9f9]">Reset</p>
+                                        <div className="size-[15px] fill-[#f9f9f9]">
+                                            {icons.erase}
+                                        </div>
                                     </div>
-                                </div>
-                            }
-                        />
-                        <Button
-                            className="text-[#f9f9f9] rounded-md h-[35px] w-[80px] bg-gradient-to-r from-violet-600 to-violet-700 hover:from-green-600 hover:to-green-700"
-                            disabled={disabled}
-                            onMouseOver={onMouseOver}
-                            type="submit"
-                            btnText={
-                                <div className="flex items-center justify-center gap-2">
-                                    <p className="text-[#f9f9f9]">Save</p>
-                                    <div className="size-[14px] fill-[#f9f9f9]">
-                                        {icons.next}
+                                }
+                            />
+                            <Button
+                                className="text-[#f9f9f9] rounded-md h-[35px] w-[80px] bg-gradient-to-r from-violet-600 to-violet-700 hover:from-green-600 hover:to-green-700"
+                                disabled={disabled}
+                                onMouseOver={onMouseOver}
+                                type="submit"
+                                btnText={
+                                    <div className="flex items-center justify-center gap-2">
+                                        <p className="text-[#f9f9f9]">Save</p>
+                                        <div className="size-[14px] fill-[#f9f9f9]">
+                                            {icons.next}
+                                        </div>
                                     </div>
-                                </div>
-                            }
-                        />
-                    </div>
+                                }
+                            />
+                        </div>
                     )}
                 </form>
             </div>

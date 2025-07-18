@@ -44,11 +44,11 @@ export default function PersonalInformation() {
 
     useEffect(() => {
         setCurrentStep(0);
-        
+
         // If in read-only mode, load data from context (for viewing submitted applications)
         if (isReadOnly && totalData?.personal?.data) {
             setInputs(totalData.personal.data);
-        } 
+        }
         // Otherwise, load from localStorage for in-progress applications
         else if (user && user._id) {
             const savedData = localStorage.getItem(

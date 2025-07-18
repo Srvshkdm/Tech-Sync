@@ -18,34 +18,113 @@ import {
 } from '../models/index.js';
 import { validateRegex } from '../utils/index.js';
 
-// pending
 const getAllStartups = async (req, res) => {
     try {
-        const { keyword = '' } = req.query;
-        const query = {
-            $or: [
+        const { 
+            keyword = '', 
+            page = 1, 
+            limit = 10,
+            status,
+            industry,
+            sortBy = 'createdAt',
+            sortOrder = 'desc'
+        } = req.query;
+
+        // Build query object
+        const query = {};
+        
+        // Add keyword search if provided
+        if (keyword) {
+            query.$or = [
                 { startupName: { $regex: keyword, $options: 'i' } },
                 { description: { $regex: keyword, $options: 'i' } },
-            ],
-        };
-        const startups = await Startup.find(query)
-            .populate({
-                path: 'owner',
-            })
-            .sort({ createdAt: -1 });
-
-        console.log(startups);
-
-        if (!startups.length) {
-            return res.status(NOT_FOUND).json({
-                message: 'no startup found',
-            });
+                { industry: { $regex: keyword, $options: 'i' } },
+            ];
         }
-        return res.status(OK).json(startups);
+        
+        // Add status filter if provided
+        if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+            query.status = status;
+        }
+        
+        // Add industry filter if provided
+        if (industry) {
+            query.industry = { $regex: industry, $options: 'i' };
+        }
+
+        // Calculate pagination
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Build sort object
+        const sortOptions = {};
+        sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+        // Execute query with pagination
+        const [startups, totalCount] = await Promise.all([
+            Startup.find(query)
+                .populate({
+                    path: 'owner',
+                    select: 'userId address nationality linkedInURL',
+                    populate: {
+                        path: 'userId',
+                        select: 'name email phoneNumber'
+                    }
+                })
+                .select('-__v')
+                .sort(sortOptions)
+                .skip(skip)
+                .limit(limitNum)
+                .lean(),
+            Startup.countDocuments(query)
+        ]);
+
+        // Format response for frontend
+        const response = {
+            success: true,
+            data: {
+                startups: startups.map(startup => ({
+                    id: startup._id,
+                    name: startup.startupName,
+                    description: startup.description,
+                    businessType: startup.businessType,
+                    industry: startup.industry,
+                    address: startup.address,
+                    country: startup.country,
+                    website: startup.website,
+                    valuation: startup.valuation,
+                    dateOfEstablishment: startup.dateOfEstablishment,
+                    status: startup.status,
+                    logo: startup.documents?.startupLogo || null,
+                    owner: startup.owner ? {
+                        id: startup.owner._id,
+                        name: startup.owner.userId?.name || 'N/A',
+                        email: startup.owner.userId?.email || 'N/A',
+                        linkedIn: startup.owner.linkedInURL || null
+                    } : null,
+                    createdAt: startup.createdAt,
+                    updatedAt: startup.updatedAt
+                })),
+                pagination: {
+                    currentPage: pageNum,
+                    totalPages: Math.ceil(totalCount / limitNum),
+                    totalItems: totalCount,
+                    itemsPerPage: limitNum,
+                    hasNextPage: pageNum < Math.ceil(totalCount / limitNum),
+                    hasPrevPage: pageNum > 1
+                }
+            },
+            message: totalCount > 0 ? 'Startups fetched successfully' : 'No startups found'
+        };
+
+        return res.status(OK).json(response);
     } catch (err) {
+        console.error('Error in getAllStartups:', err);
         return res.status(SERVER_ERROR).json({
-            message: 'error occured while getting the startups.',
-            error: err.message,
+            success: false,
+            message: 'An error occurred while fetching startups',
+            error: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -357,7 +436,10 @@ const addStartup = async (req, res) => {
                             }
                         } catch (appError) {
                             // Log error but don't fail the registration
-                            console.log('Error updating application:', appError.message);
+                            console.log(
+                                'Error updating application:',
+                                appError.message
+                            );
                         }
                     }
 

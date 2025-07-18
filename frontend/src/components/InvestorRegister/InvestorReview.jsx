@@ -8,13 +8,20 @@ export default function InvestorReview() {
     const { investorId } = useParams(); // This is actually userId during registration
 
     // Check if we're in registration mode by looking at the route and localStorage
-    const isRegistrationRoute = location.pathname.includes('/become-investor/') && location.pathname.includes('/personal');
+    const isRegistrationRoute =
+        location.pathname.includes('/become-investor/') &&
+        location.pathname.includes('/personal');
     const hasLocalStorageData =
         localStorage.getItem('InvestorPersonalInfo') !== null;
-    const isRegistrationMode = isRegistrationRoute || (hasLocalStorageData && !location.pathname.includes('/review'));
+    const isRegistrationMode =
+        isRegistrationRoute ||
+        (hasLocalStorageData && !location.pathname.includes('/review'));
 
     // Treat as viewing existing if we have investorId AND the path includes /review but not during registration
-    const isViewingExisting = !!investorId && location.pathname.includes('/review') && !hasLocalStorageData;
+    const isViewingExisting =
+        !!investorId &&
+        location.pathname.includes('/review') &&
+        !hasLocalStorageData;
 
     // State to hold fetched data
     const [investorData, setInvestorData] = useState({
@@ -55,47 +62,96 @@ export default function InvestorReview() {
                 if (isViewingExisting && investorId) {
                     // Only fetch from backend if viewing existing investor
                     try {
-                        console.log('Fetching investor details for ID:', investorId);
+                        console.log(
+                            'Fetching investor details for ID:',
+                            investorId
+                        );
                         const response =
                             await investorService.getInvestorDetails(
                                 investorId
                             );
-                        
+
                         console.log('Response from backend:', response);
-                        
+
                         // Check if response has investor data
                         const investor = response.investor || response;
-                        
+
                         // Map the investor data to the expected structure
                         setInvestorData({
                             personalInformation: {
-                                fullName: investor.fullName || investor.name || '',
+                                fullName:
+                                    investor.fullName || investor.name || '',
                                 investorType: investor.investorType || '',
-                                organizationName: investor.organisationName || investor.organizationName || '',
-                                phoneNumber: investor.phoneNumber || investor.mobile || '',
+                                organizationName:
+                                    investor.organisationName ||
+                                    investor.organizationName ||
+                                    '',
+                                phoneNumber:
+                                    investor.phoneNumber ||
+                                    investor.mobile ||
+                                    '',
                                 email: investor.email || '',
                                 address: investor.address || '',
-                                dateOfBirth: investor.dateOfBirth || investor.dob || '',
+                                dateOfBirth:
+                                    investor.dateOfBirth || investor.dob || '',
                                 nationality: investor.nationality || '',
-                                linkedIn: investor.linkedIn || investor.linkedin || ''
+                                linkedIn:
+                                    investor.linkedIn ||
+                                    investor.linkedin ||
+                                    '',
                             },
                             financialInformation: {
-                                revenue: investor.revenue || investor.financialInfo?.revenue || '',
-                                netWorth: investor.netWorth || investor.financialInfo?.netWorth || '',
-                                businessLicenseNumber: investor.businessLicenseNumber || '',
-                                taxPayerIdentification: investor.taxPayerIdentification || investor.taxId || '',
-                                idType: investor.idType || investor.governmentIdType || '',
-                                idValue: investor.idValue || investor.governmentIdNumber || ''
+                                revenue:
+                                    investor.revenue ||
+                                    investor.financialInfo?.revenue ||
+                                    '',
+                                netWorth:
+                                    investor.netWorth ||
+                                    investor.financialInfo?.netWorth ||
+                                    '',
+                                businessLicenseNumber:
+                                    investor.businessLicenseNumber || '',
+                                taxPayerIdentification:
+                                    investor.taxPayerIdentification ||
+                                    investor.taxId ||
+                                    '',
+                                idType:
+                                    investor.idType ||
+                                    investor.governmentIdType ||
+                                    '',
+                                idValue:
+                                    investor.idValue ||
+                                    investor.governmentIdNumber ||
+                                    '',
                             },
                             bankingInformation: {
-                                bankName: investor.bankName || investor.bankInfo?.bankName || '',
-                                accountNumber: investor.accountNumber || investor.bankInfo?.accountNumber || '',
-                                accountType: investor.accountType || investor.bankInfo?.accountType || '',
-                                ifscCode: investor.ifscCode || investor.bankInfo?.ifscCode || investor.bankInfo?.IFSC || '',
-                                branchName: investor.branchName || investor.bankInfo?.branchName || '',
-                                swiftCode: investor.swiftCode || investor.bankInfo?.swiftCode || ''
+                                bankName:
+                                    investor.bankName ||
+                                    investor.bankInfo?.bankName ||
+                                    '',
+                                accountNumber:
+                                    investor.accountNumber ||
+                                    investor.bankInfo?.accountNumber ||
+                                    '',
+                                accountType:
+                                    investor.accountType ||
+                                    investor.bankInfo?.accountType ||
+                                    '',
+                                ifscCode:
+                                    investor.ifscCode ||
+                                    investor.bankInfo?.ifscCode ||
+                                    investor.bankInfo?.IFSC ||
+                                    '',
+                                branchName:
+                                    investor.branchName ||
+                                    investor.bankInfo?.branchName ||
+                                    '',
+                                swiftCode:
+                                    investor.swiftCode ||
+                                    investor.bankInfo?.swiftCode ||
+                                    '',
                             },
-                            documents: investor.documents || {}
+                            documents: investor.documents || {},
                         });
                     } catch (err) {
                         // If error and in registration mode, fallback to localStorage

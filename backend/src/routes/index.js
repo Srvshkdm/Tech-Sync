@@ -7,6 +7,7 @@ import { userRouter } from './user.Router.js';
 import { documentRouter } from './document.Router.js';
 import { queryRouter } from './queryMail.Router.js';
 import { paymentRouter } from './paymentRouter.js';
+import { investorRouter } from './investor.Router.js';
 
 export {
     investmentRouter,
@@ -18,4 +19,5 @@ export {
     documentRouter,
     paymentRouter,
     queryRouter,
+    investorRouter,
 };

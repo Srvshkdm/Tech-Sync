@@ -1,7 +1,8 @@
 import express from 'express';
 export const startupRouter = express.Router();
 
-import { verifyJWT } from '../middlewares/index.js';
+import { verifyJWT, optionalAuth } from '../middlewares/index.js';
+import { validateStartupQuery } from '../middlewares/validateStartupQuery.js';
 
 import {
     addStartup,
@@ -13,10 +14,14 @@ import {
     registerStartupUsingDPIITid,
 } from '../controllers/startup.Controller.js';
 
-startupRouter.use(verifyJWT); // will be applied to all startup routes
+// Public routes (no authentication required)
+startupRouter.route('/').get(validateStartupQuery, getAllStartups);
+
+// Protected routes (authentication required)
+startupRouter.use(verifyJWT);
 
 startupRouter.route('/add').post(addStartup);
-startupRouter.route('/:userId').get(getStartupsByOwnerId);
+startupRouter.route('/owner/:userId').get(getStartupsByOwnerId);
 
 startupRouter
     .route('/:startupId')
@@ -27,5 +32,3 @@ startupRouter
 startupRouter
     .route('/register-DPIIT/:DPIITid')
     .post(registerStartupUsingDPIITid);
-
-startupRouter.route('/').get(getAllStartups);

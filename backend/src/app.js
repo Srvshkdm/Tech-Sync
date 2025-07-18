@@ -37,12 +37,14 @@ import {
     documentRouter,
     queryRouter,
     paymentRouter,
+    investorRouter,
 } from './routes/index.js';
 
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/owners', startupOwnerRouter);
 app.use('/api/v1/startups', startupRouter);
 app.use('/api/v1/investments', investmentRouter);
+app.use('/api/v1/investors', investorRouter);
 app.use('/api/v1/gov-officials', govOfficialrouter);
 app.use('/api/v1/applications', startupRegistrationApplicationRouter);
 app.use('/api/v1/documents', documentRouter);
